@@ -1,5 +1,6 @@
 package com.beers;
 
+import com.beers.security.CorsFilter;
 import com.beers.security.JwtRequestFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -15,19 +16,18 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.access.channel.ChannelProcessingFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import javax.sql.DataSource;
 
 @EnableWebSecurity
 @Configuration
-public class WebConfig extends WebSecurityConfigurerAdapter {
+public class WebConfig extends WebSecurityConfigurerAdapter implements  WebMvcConfigurer{
 
-   // @Override
-    public void addCorsMappings() {
-        addCorsMappings(null);
-    }
+
 
     @Autowired
    private AuthenticationManager authenticationManager;
@@ -41,10 +41,8 @@ public class WebConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     JwtRequestFilter jwtRequestFilter;
 
-    // @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**").allowedOrigins("*");
-    }
+
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return NoOpPasswordEncoder.getInstance();
@@ -62,6 +60,8 @@ public class WebConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
 
         http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(new CorsFilter(), ChannelProcessingFilter.class);
+
 
 
         http.authorizeRequests().antMatchers("/h2-console/**").permitAll()
@@ -70,9 +70,8 @@ public class WebConfig extends WebSecurityConfigurerAdapter {
                 .and().headers().frameOptions().sameOrigin();
 
 
-
         http.csrf().disable().authorizeRequests()
-                .antMatchers("/get-beers").hasAnyRole( "USER")
+                .antMatchers("/api/beers/**").hasAnyAuthority( "ROLE_USER")
                 .antMatchers("/authenticate").permitAll()
                 .antMatchers("/").permitAll()
                 .and()
@@ -89,10 +88,10 @@ public class WebConfig extends WebSecurityConfigurerAdapter {
 
       //  auth.userDetailsService(userDetailsService);
 
-       auth.jdbcAuthentication().dataSource(dataSource).withDefaultSchema()
-                .withUser(User.withUsername("user")
-                        .password(passwordEncoder().encode("pass"))
-                        .roles("USER"));
+     auth.jdbcAuthentication().dataSource(dataSource);
+//                .withUser(User.withUsername("user")
+//                        .password(passwordEncoder().encode("pass"))
+//                        .roles("USER"));
 
 
 
@@ -115,6 +114,17 @@ public class WebConfig extends WebSecurityConfigurerAdapter {
     }
 
 
+
+    @Bean
+    WebMvcConfigurer corsConfigurer() {
+        return new WebMvcConfigurer() {
+            @Override
+            public void addCorsMappings(CorsRegistry registry) {
+                registry.addMapping("/**")
+                        .allowedOrigins("*");
+            }
+        };
+    }
 
 
 }

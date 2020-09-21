@@ -32,6 +32,9 @@ public class SecurityRestController {
 
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUserName());
+        if ( request.getPassword()!= null && !request.getPassword().equalsIgnoreCase(userDetails.getPassword())) {
+            return response;
+        }
 
         if ( userDetails == null){
             log.info("User details is null");

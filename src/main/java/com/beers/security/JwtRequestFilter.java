@@ -9,7 +9,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -35,10 +34,19 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         String jwt = null;
 
         log.info ("In auth chain " + request.getRequestURL());
+        log.info ("Authorization is  " + authorization);
 
         if ( authorization != null && authorization.startsWith("Bearer")) {
 
-            jwt = authorization.substring(7);
+            if (authorization.length() >= 7 ) {
+               jwt = authorization.substring(7);
+            }
+            if ( jwt == null || jwt.length() == 0 || jwt.equalsIgnoreCase("null")){
+                chain.doFilter(request,response);
+                return;
+            }
+
+
             userName = jwtUtil.extractUsername(jwt);
             log.info("token passed is " + jwt);
         }
@@ -54,6 +62,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                 UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(
                         userDetails,null, userDetails.getAuthorities()
                 );
+                log.info(String.valueOf(usernamePasswordAuthenticationToken));
                 usernamePasswordAuthenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
             }
